@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Real Estate Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #listing, #foreclosure-results, #saved-listings-results, #saved-full {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      background-color: #ffffff;
+      min-height: 50px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #eee;
+    }
+    tr.saved-row {
+      cursor: pointer;
+    }
+    tr.saved-row:hover {
+      background-color: #f0f8ff;
+    }
+    .section {
+      margin-bottom: 40px;
+      padding: 15px;
+      background-color: #ffffff;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .meta {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #555;
+    }
+    .delete-btn {
+      padding: 4px 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Real Estate Dashboard</h1>
+
+  <!-- ========== AI LISTING GENERATOR ========== -->
+  <div class="section">
+    <h2>AI Listing Generator</h2>
+
+    <label for="address">Address</label>
+    <input type="text" id="address" placeholder="3125 Harper Street">
+
+    <label for="beds">Bedrooms</label>
+    <input type="number" id="beds" placeholder="3">
+
+    <label for="baths">Bathrooms</label>
+    <input type="number" id="baths" placeholder="2">
+
+    <label for="sqrft">Square Feet</label>
+    <input type="number" id="sqrft" placeholder="1250">
+
+    <label for="tone">Tone</label>
+    <select id="tone">
+      <option value="neutral" selected>Neutral / Standard MLS</option>
+      <option value="luxury">Luxury</option>
+      <option value="investor">Investor / Flip</option>
+      <option value="casual">Casual / Friendly</option>
+      <option value="spanish">Spanish</option>
+    </select>
+
+    <button id="generateBtn">Generate Listing</button>
+    <button id="copyBtn" disabled>Copy Listing</button>
+    <button id="saveBtn" disabled>Save Listing</button>
+
+    <div id="listing"></div>
+    <div id="listing-meta" class="meta"></div>
+  </div>
+
+  <!-- ========== FORECLOSURE VIEWER ========== -->
+  <div class="section">
+    <h2>Foreclosure Search by County</h2>
+
+    <label for="county">County Name</label>
+    <input type="text" id="county" placeholder="Dallas">
+
+    <button id="foreclosureBtn">Get Foreclosures</button>
+
+    <div id="foreclosure-results"></div>
+  </div>
+
+  <!-- ========== SAVED LISTINGS ========== -->
+  <div class="section">
+    <h2>Saved Listings</h2>
+    <button id="historyBtn">Load Saved Listings</button>
+    <button id="exportBtn">Export as CSV</button>
+    <div id="saved-listings-results"></div>
+    <div id="saved-full"></div>
+  </div>
+
+  <script>
+    // ---------- AI LISTING GENERATOR ----------
+    const generateBtn = document.getElementById("generateBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const listingDiv = document.getElementById("listing");
+    const listingMetaDiv = document.getElementById("listing-meta");
+
+    let lastListingText = "";
+    let latestSavedData = []; // holds latest /history data for clicks
+
+    function updateMeta(text) {
+      const trimmed = text.trim();
+      const words = trimmed ? trimmed.split(/\s+/).length : 0;
+      const chars = text.length;
+      listingMetaDiv.innerHTML = text
+        ? `Words: <b>${words}</b> • Characters: <b>${chars}</b>`
+        : "";
+    }
+
+    generateBtn.addEventListener("click", async () => {
+      const address = document.getElementById("address").value;
+      const beds = document.getElementById("beds").value;
+      const baths = document.getElementById("baths").value;
+      const sqrft = document.getElementById("sqrft").value;
+      const tone = document.getElementById("tone").value;
+
+      if (!address || !beds || !baths || !sqrft) {
+        listingDiv.innerHTML = "⚠️ Please fill in all fields.";
+        listingMetaDiv.innerHTML = "";
+        copyBtn.disabled = true;
+        saveBtn.disabled = true;
+        lastListingText = "";
+        return;
+      }
+
+      listingDiv.innerHTML = "⏳ Generating listing...";
+      listingMetaDiv.innerHTML = "";
+      copyBtn.disabled = true;
+      saveBtn.disabled = true;
+      lastListingText = "";
+
+      try {
+        const response = await fetch("http://localhost:3000/generate-listing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, beds, baths, sqrft, tone })
+        });
+
+        const data = await response.json();
+        const text = data.listing || "No listing returned from server.";
+
+        listingDiv.innerHTML = text;
+        lastListingText = text;
+        updateMeta(text);
+        copyBtn.disabled = !text;
+        saveBtn.disabled = !text;
+      } catch (err) {
+        console.error("Fetch Error:", err);
+        listingDiv.innerHTML = "❌ Error generating listing.";
+        listingMetaDiv.innerHTML = "";
+        copyBtn.disabled = true;
+        saveBtn.disabled = true;
+        lastListingText = "";
+      }
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      if (!lastListingText) return;
+
+      try {
+        await navigator.clipboard.writeText(lastListingText);
+        copyBtn.innerText = "Copied!";
+        setTimeout(() => {
+          copyBtn.innerText = "Copy Listing";
+        }, 1500);
+      } catch (err) {
+        console.error("Clipboard error:", err);
+        alert("Could not copy. You can still select and copy manually.");
+      }
+    });
+
+    saveBtn.addEventListener("click", async () => {
+      if (!lastListingText) return;
+
+      const address = document.getElementById("address").value;
+      const tone = document.getElementById("tone").value;
+
+      try {
+        const response = await fetch("http://localhost:3000/save-listing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, tone, listingText: lastListingText })
+        });
+
+        const data = await response.json();
+        console.log("Save response:", data);
+        alert("✅ Listing saved!");
+      } catch (err) {
+        console.error("Save error:", err);
+        alert("❌ Could not save listing.");
+      }
+    });
+
+    // ---------- FORECLOSURE VIEWER ----------
+    const foreclosureBtn = document.getElementById("foreclosureBtn");
+    const foreclosureDiv = document.getElementById("foreclosure-results");
+
+    foreclosureBtn.addEventListener("click", async () => {
+      const county = document.getElementById("county").value.trim();
+
+      if (!county) {
+        foreclosureDiv.innerHTML = "⚠️ Please type a county.";
+        return;
+      }
+
+      foreclosureDiv.innerHTML = "⏳ Loading foreclosures...";
+
+      try {
+        const response = await fetch(`http://localhost:3000/foreclosures/${encodeURIComponent(county)}`);
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          foreclosureDiv.innerHTML = "No foreclosures found (or placeholder data only).";
+          return;
+        }
+
+        let html = `<p>Results for <b>${county}</b> county:</p>`;
+        html += "<table><tr><th>ID</th><th>Address</th><th>Status</th></tr>";
+
+        data.forEach(item => {
+          html += `<tr>
+            <td>${item.id}</td>
+            <td>${item.address}</td>
+            <td>${item.status}</td>
+          </tr>`;
+        });
+
+        html += "</table>";
+
+        foreclosureDiv.innerHTML = html;
+      } catch (err) {
+        console.error("Foreclosure Fetch Error:", err);
+        foreclosureDiv.innerHTML = "❌ Error loading foreclosures.";
+      }
+    });
+
+    // ---------- SAVED LISTINGS VIEWER ----------
+    const historyBtn = document.getElementById("historyBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const savedDiv = document.getElementById("saved-listings-results");
+    const savedFullDiv = document.getElementById("saved-full");
+
+    async function loadHistory() {
+      savedDiv.innerHTML = "⏳ Loading saved listings...";
+      savedFullDiv.innerHTML = "";
+
+      try {
+        const response = await fetch("http://localhost:3000/history");
+        const data = await response.json();
+        latestSavedData = data;
+
+        if (!Array.isArray(data) || data.length === 0) {
+          savedDiv.innerHTML = "No saved listings yet.";
+          return;
+        }
+
+        let html = "<table><tr><th>Address</th><th>Tone</th><th>Created</th><th>Preview (click row)</th><th>Delete</th></tr>";
+
+        data.forEach((entry, index) => {
+          const date = new Date(entry.createdAt).toLocaleString();
+          const preview = entry.listingText.length > 120
+            ? entry.listingText.slice(0, 120) + "..."
+            : entry.listingText;
+
+          html += `<tr class="saved-row" data-index="${index}">
+            <td>${entry.address}</td>
+            <td>${entry.tone}</td>
+            <td>${date}</td>
+            <td>${preview}</td>
+            <td>
+              <button class="delete-btn" data-index="${index}">Delete</button>
+            </td>
+          </tr>`;
+        });
+
+        html += "</table>";
+
+        savedDiv.innerHTML = html;
+
+        // Click row to show full listing
+        const rows = document.querySelectorAll(".saved-row");
+        rows.forEach(row => {
+          row.addEventListener("click", () => {
+            const idx = row.getAttribute("data-index");
+            const entry = latestSavedData[idx];
+            if (!entry) return;
+
+            const formatted = entry.listingText.replace(/\n/g, "<br>");
+
+            savedFullDiv.innerHTML = `
+              <h3>Full Listing for ${entry.address}</h3>
+              <p><b>Tone:</b> ${entry.tone}</p>
+              <p><b>Created:</b> ${new Date(entry.createdAt).toLocaleString()}</p>
+              <hr>
+              <p>${formatted}</p>
+            `;
+          });
+        });
+
+        // Delete button handlers
+        const deleteButtons = document.querySelectorAll(".delete-btn");
+        deleteButtons.forEach(btn => {
+          btn.addEventListener("click", async (event) => {
+            event.stopPropagation(); // don’t trigger row click
+            const idx = parseInt(btn.getAttribute("data-index"), 10);
+
+            const confirmDelete = confirm("Delete this listing?");
+            if (!confirmDelete) return;
+
+            try {
+              const resp = await fetch("http://localhost:3000/delete-listing", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ index: idx })
+              });
+
+              const result = await resp.json();
+              console.log("Delete result:", result);
+              await loadHistory(); // reload after delete
+            } catch (err) {
+              console.error("Delete error:", err);
+              alert("❌ Could not delete listing.");
+            }
+          });
+        });
+
+      } catch (err) {
+        console.error("History fetch error:", err);
+        savedDiv.innerHTML = "❌ Error loading saved listings.";
+        savedFullDiv.innerHTML = "";
+      }
+    }
+
+    historyBtn.addEventListener("click", loadHistory);
+
+    // ---------- EXPORT CSV ----------
+    exportBtn.addEventListener("click", () => {
+      // Just navigate to the CSV endpoint; browser will download file
+      window.location.href = "http://localhost:3000/export-csv";
+    });
+  </script>
+</body>
+</html>
