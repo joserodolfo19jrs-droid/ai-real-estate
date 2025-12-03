@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Real Estate Listing Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #f9fafb;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: #020617;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.7rem;
+      text-align: center;
+    }
+    p.subtitle {
+      margin-top: 4px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    label {
+      font-size: 0.8rem;
+      display: block;
+      margin-bottom: 4px;
+      color: #cbd5f5;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #f9fafb;
+      font-size: 0.9rem;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: 2px solid #22c55e;
+      outline-offset: 1px;
+      border-color: #22c55e;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 16px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      background: #22c55e;
+      color: #022c22;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.1s ease;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+      box-shadow: none;
+      transform: none;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .output {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #020617;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      display: none;
+      position: relative;
+    }
+    .output-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      cursor: pointer;
+    }
+    .copy-btn:hover {
+      background: #111827;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Real Estate Listing Generator</h1>
+    <p class="subtitle">Enter basic property details and let AI write a polished listing for you.</p>
+
+    <form id="listing-form">
+      <div class="grid">
+        <div>
+          <label for="address">Address</label>
+          <input type="text" id="address" required />
+        </div>
+        <div>
+          <label for="city">City</label>
+          <input type="text" id="city" required />
+        </div>
+        <div>
+          <label for="state">State</label>
+          <input type="text" id="state" required />
+        </div>
+        <div>
+          <label for="zip">ZIP</label>
+          <input type="text" id="zip" />
+        </div>
+        <div>
+          <label for="price">Price ($)</label>
+          <input type="number" id="price" min="0" />
+        </div>
+        <div>
+          <label for="beds">Beds</label>
+          <input type="number" id="beds" min="0" step="1" />
+        </div>
+        <div>
+          <label for="baths">Baths</label>
+          <input type="number" id="baths" min="0" step="0.5" />
+        </div>
+        <div>
+          <label for="sqft">Square Feet</label>
+          <input type="number" id="sqft" min="0" step="50" />
+        </div>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <label for="extras">Extra details (upgrades, lot, schools, amenities, etc.)</label>
+        <textarea id="extras" placeholder="Example: Corner lot, open floorplan, quartz counters, new roof in 2023, walking distance to elementary school, community pool..."></textarea>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <label for="tone">Listing style</label>
+        <select id="tone">
+          <option value="professional" selected>Professional MLS style (English)</option>
+          <option value="luxury">Luxury marketing style (English)</option>
+          <option value="investor">Investor-focused (English)</option>
+          <option value="casual">Casual, social media style (English)</option>
+          <option value="spanish">Español – estilo profesional para agentes</option>
+        </select>
+      </div>
+
+      <button type="submit" id="generate-btn">Generate Listing</button>
+      <div class="status" id="status"></div>
+    </form>
+
+    <div class="output" id="output">
+      <button type="button" class="copy-btn" id="copy-btn">Copy</button>
+      <div class="output-title">Generated Listing</div>
+      <div id="output-text"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("listing-form");
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const outputTextEl = document.getElementById("output-text");
+    const button = document.getElementById("generate-btn");
+    const copyBtn = document.getElementById("copy-btn");
+
+    // Always talk to your backend on port 3000
+    const API_BASE = "http://localhost:3000";
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        address: document.getElementById("address").value,
+        city: document.getElementById("city").value,
+        state: document.getElementById("state").value,
+        zip: document.getElementById("zip").value,
+        price: document.getElementById("price").value,
+        beds: document.getElementById("beds").value,
+        baths: document.getElementById("baths").value,
+        sqft: document.getElementById("sqft").value,
+        extras: document.getElementById("extras").value,
+        tone: document.getElementById("tone").value,
+      };
+
+      statusEl.textContent = "⏳ Generating listing with AI...";
+      statusEl.style.color = "#38bdf8";
+      button.disabled = true;
+      button.textContent = "Generating...";
+      outputEl.style.display = "none";
+
+      console.log("Sending payload to backend:", payload);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/listings/generate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        console.log("Response object:", res);
+
+        if (!res.ok) {
+          throw new Error("Server error: " + res.status);
+        }
+
+        const data = await res.json();
+        console.log("Response JSON:", data);
+
+        outputTextEl.textContent = data.listing || "No listing text returned.";
+        outputEl.style.display = "block";
+        statusEl.textContent = "✅ Listing generated successfully";
+        statusEl.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fetch failed:", err);
+        statusEl.textContent = "❌ Error: " + err.message;
+        statusEl.style.color = "#f97373";
+        outputEl.style.display = "none";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Generate Listing";
+      }
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const text = outputTextEl.textContent || "";
+      if (!text.trim()) return;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        const old = copyBtn.textContent;
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = old), 1200);
+      } catch (e) {
+        console.error(e);
+        const old = copyBtn.textContent;
+        copyBtn.textContent = "Error";
+        setTimeout(() => (copyBtn.textContent = old), 1200);
+      }
+    });
+  </script>
+</body>
+</html>
