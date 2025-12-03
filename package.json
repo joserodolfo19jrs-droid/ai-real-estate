@@ -1,10 +1,10 @@
 {
   "name": "ai-real-estate",
   "version": "1.0.0",
-  "main": "index.js",
-  "type": "commonjs",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -13,3 +13,4 @@
     "openai": "^4.0.0"
   }
 }
+
