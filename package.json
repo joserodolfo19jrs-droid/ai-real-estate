@@ -1,16 +1,20 @@
 {
   "name": "ai-real-estate",
   "version": "1.0.0",
+  "description": "AI-powered real estate listing generator with PDFs and share links",
   "main": "server.js",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.0",
-    "express": "^4.19.0",
-    "openai": "^4.0.0"
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.6.1",
+    "puppeteer": "^22.12.1"
   }
 }
 

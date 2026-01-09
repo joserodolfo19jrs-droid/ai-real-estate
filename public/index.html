@@ -1,288 +1,673 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Real Estate Listing Generator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Real Estate</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #020617;
-      color: #f9fafb;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-    }
-    .container {
-      max-width: 900px;
-      width: 100%;
-      background: #020617;
-      border-radius: 16px;
-      padding: 20px;
-      border: 1px solid #1e293b;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    }
-    h1 {
-      margin-top: 0;
-      font-size: 1.7rem;
-      text-align: center;
-    }
-    p.subtitle {
-      margin-top: 4px;
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 0.9rem;
-      color: #9ca3af;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
-    label {
-      font-size: 0.8rem;
-      display: block;
-      margin-bottom: 4px;
-      color: #cbd5f5;
-    }
-    input, textarea, select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 10px;
-      border: 1px solid #1f2937;
-      background: #020617;
-      color: #f9fafb;
-      font-size: 0.9rem;
-    }
-    input:focus, textarea:focus, select:focus {
-      outline: 2px solid #22c55e;
-      outline-offset: 1px;
-      border-color: #22c55e;
-    }
-    textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-    button {
-      margin-top: 16px;
-      width: 100%;
-      padding: 12px;
-      border-radius: 999px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 1rem;
-      background: #22c55e;
-      color: #022c22;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.1s ease;
-    }
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: wait;
-      box-shadow: none;
-      transform: none;
-    }
-    .status {
-      margin-top: 10px;
-      font-size: 0.95rem;
-      font-weight: 600;
-    }
-    .output {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 14px;
-      background: #020617;
-      border: 1px solid #1e293b;
-      white-space: pre-wrap;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      display: none;
-      position: relative;
-    }
-    .output-title {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #9ca3af;
-      margin-bottom: 8px;
-    }
-    .copy-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 0.75rem;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid #374151;
-      background: #020617;
-      color: #e5e7eb;
-      cursor: pointer;
-    }
-    .copy-btn:hover {
-      background: #111827;
-    }
+    :root { --b:#e8e8e8; --t:#111; --m:#666; --bg:#fafafa; }
+    body { font-family: Arial, sans-serif; margin: 0; background: var(--bg); color: var(--t); }
+    header { padding: 18px 16px; border-bottom: 1px solid var(--b); background: #fff; position: sticky; top: 0; z-index: 10; }
+    header h1 { margin: 0; font-size: 18px; }
+    header p { margin: 6px 0 0 0; color: var(--m); font-size: 12px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+    .card { background:#fff; border:1px solid var(--b); border-radius:14px; padding:14px; }
+    .card h2 { margin: 0 0 10px 0; font-size: 14px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    label { display:block; font-size:12px; color:var(--m); margin:10px 0 6px; }
+    input, select, textarea { width:100%; box-sizing:border-box; padding:10px; border:1px solid var(--b); border-radius:10px; font-size:14px; }
+    textarea { min-height: 100px; resize: vertical; }
+    .btns { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+    button { border:1px solid var(--b); background:#111; color:#fff; padding:10px 12px; border-radius:10px; cursor:pointer; font-size:14px; }
+    button.secondary { background:#fff; color:#111; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    .status { margin-top:10px; font-size:12px; color:var(--m); white-space: pre-wrap; }
+    .error { color:#b00020; }
+    .ok { color:#1b5e20; }
+    .preview { width:100%; max-height:220px; object-fit:cover; border-radius:12px; border:1px solid var(--b); display:none; margin-top:10px; }
+    .pill { display:inline-block; font-size:11px; padding:6px 10px; border:1px solid var(--b); border-radius:999px; background:#fff; }
+    .result-title { margin: 10px 0 6px; font-size: 16px; font-weight: 700; }
+    .result-meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .result-desc { white-space:pre-wrap; line-height:1.45; }
+    .saved-item { border:1px solid var(--b); border-radius:12px; padding:12px; margin-top:10px; }
+    .saved-item h3 { margin:0 0 6px 0; font-size:14px; }
+    .saved-item .mini { color:var(--m); font-size:12px; margin-bottom:8px; }
+    .saved-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .saved-actions button { padding:8px 10px; font-size:13px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI Real Estate Listing Generator</h1>
-    <p class="subtitle">Enter basic property details and let AI write a polished listing for you.</p>
+  <header>
+    <h1>AI Real Estate</h1>
+    <p>Generate listings, upload photos, brand with agent info, and export PDFs.</p>
+  </header>
 
-    <form id="listing-form">
-      <div class="grid">
+  <main>
+    <!-- LEFT -->
+    <section class="card">
+      <h2>Property Inputs</h2>
+
+      <label for="tone">Tone / Mode</label>
+      <select id="tone">
+        <option>MLS (English)</option>
+        <option>Spanish MLS</option>
+        <option>Luxury</option>
+        <option>Social Media</option>
+        <option>Investor</option>
+        <option>Airbnb</option>
+        <option>Short</option>
+        <option>Long</option>
+      </select>
+
+      <div class="row">
         <div>
           <label for="address">Address</label>
-          <input type="text" id="address" required />
+          <input id="address" placeholder="123 Main St" />
         </div>
         <div>
           <label for="city">City</label>
-          <input type="text" id="city" required />
+          <input id="city" placeholder="Frisco" />
         </div>
+      </div>
+
+      <div class="row">
         <div>
           <label for="state">State</label>
-          <input type="text" id="state" required />
+          <input id="state" placeholder="TX" />
         </div>
         <div>
-          <label for="zip">ZIP</label>
-          <input type="text" id="zip" />
+          <label for="price">Price</label>
+          <input id="price" placeholder="240000 or $240,000" />
         </div>
-        <div>
-          <label for="price">Price ($)</label>
-          <input type="number" id="price" min="0" />
-        </div>
+      </div>
+
+      <div class="row">
         <div>
           <label for="beds">Beds</label>
-          <input type="number" id="beds" min="0" step="1" />
+          <input id="beds" placeholder="3" />
         </div>
         <div>
           <label for="baths">Baths</label>
-          <input type="number" id="baths" min="0" step="0.5" />
+          <input id="baths" placeholder="2" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="sqft">Sqft</label>
+          <input id="sqft" placeholder="1240" />
         </div>
         <div>
-          <label for="sqft">Square Feet</label>
-          <input type="number" id="sqft" min="0" step="50" />
+          <label for="yearBuilt">Year Built</label>
+          <input id="yearBuilt" placeholder="2022" />
         </div>
       </div>
 
-      <div style="margin-top: 12px;">
-        <label for="extras">Extra details (upgrades, lot, schools, amenities, etc.)</label>
-        <textarea id="extras" placeholder="Example: Corner lot, open floorplan, quartz counters, new roof in 2023, walking distance to elementary school, community pool..."></textarea>
+      <label for="features">Features / Notes</label>
+      <input id="features" placeholder="Pool, corner lot, open floor plan..." />
+
+      <label for="descriptionInput">Extra description (your words)</label>
+      <textarea id="descriptionInput" placeholder="Anything specific you want included..."></textarea>
+
+      <hr style="border:none;border-top:1px solid #e8e8e8;margin:14px 0;" />
+      <h2>Agent Branding</h2>
+
+      <div class="row">
+        <div>
+          <label for="agentName">Agent Name</label>
+          <input id="agentName" placeholder="Jose Serrano" />
+        </div>
+        <div>
+          <label for="brokerage">Brokerage</label>
+          <input id="brokerage" placeholder="Brokerage Name" />
+        </div>
       </div>
 
-      <div style="margin-top: 12px;">
-        <label for="tone">Listing style</label>
-        <select id="tone">
-          <option value="professional" selected>Professional MLS style (English)</option>
-          <option value="luxury">Luxury marketing style (English)</option>
-          <option value="investor">Investor-focused (English)</option>
-          <option value="casual">Casual, social media style (English)</option>
-          <option value="spanish">Español – estilo profesional para agentes</option>
-        </select>
+      <div class="row">
+        <div>
+          <label for="agentPhone">Phone</label>
+          <input id="agentPhone" placeholder="(469) 555-1234" />
+        </div>
+        <div>
+          <label for="agentEmail">Email</label>
+          <input id="agentEmail" placeholder="you@email.com" />
+        </div>
       </div>
 
-      <button type="submit" id="generate-btn">Generate Listing</button>
-      <div class="status" id="status"></div>
-    </form>
+      <label for="agentLogo">Agent Logo (optional)</label>
+      <input id="agentLogo" type="file" accept="image/*" />
+      <div class="btns">
+        <button id="uploadLogoBtn" class="secondary" type="button">Upload Logo</button>
+        <span id="logoStatus" class="status"></span>
+      </div>
+      <img id="logoPreview" class="preview" alt="Logo preview" />
 
-    <div class="output" id="output">
-      <button type="button" class="copy-btn" id="copy-btn">Copy</button>
-      <div class="output-title">Generated Listing</div>
-      <div id="output-text"></div>
-    </div>
-  </div>
+      <div class="btns">
+        <button id="saveAgentBtn" class="secondary" type="button">Save Agent Profile</button>
+        <button id="clearAgentBtn" class="secondary" type="button">Clear Agent Profile</button>
+        <span id="agentProfileStatus" class="status"></span>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #e8e8e8;margin:14px 0;" />
+      <h2>Property Photo</h2>
+
+      <label for="image">Property photo (optional)</label>
+      <input id="image" type="file" accept="image/*" />
+      <div class="btns">
+        <button id="uploadBtn" class="secondary" type="button">Upload Photo</button>
+        <span id="uploadStatus" class="status"></span>
+      </div>
+      <img id="imagePreview" class="preview" alt="Property preview" />
+
+      <div class="btns">
+        <button id="generateBtn" type="button">Generate Listing</button>
+        <button id="saveBtn" class="secondary" type="button" disabled>Save Listing</button>
+        <button id="downloadPdfBtn" class="secondary" type="button" disabled>Download PDF</button>
+        <button id="copyShareBtn" class="secondary" type="button" disabled>Copy Share Link</button>
+      </div>
+
+      <div id="mainStatus" class="status"></div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="card">
+      <h2>Generated Output</h2>
+
+      <div id="outputEmpty" class="status">Generate a listing to see the result here.</div>
+
+      <div id="outputWrap" style="display:none;">
+        <div class="result-meta">
+          <span id="outTone" class="pill"></span>
+          <span id="outMeta" class="pill"></span>
+        </div>
+        <div id="outTitle" class="result-title"></div>
+        <div id="outAddress" class="status"></div>
+        <div id="outDesc" class="result-desc" style="margin-top:10px;"></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #e8e8e8;margin:16px 0;" />
+      <h2>Saved Listings</h2>
+
+      <div class="btns" style="margin-top:0;">
+        <button id="refreshSavedBtn" class="secondary" type="button">Refresh</button>
+        <span id="savedStatus" class="status"></span>
+      </div>
+
+      <div id="savedList"></div>
+    </section>
+  </main>
 
   <script>
-    const form = document.getElementById("listing-form");
-    const statusEl = document.getElementById("status");
-    const outputEl = document.getElementById("output");
-    const outputTextEl = document.getElementById("output-text");
-    const button = document.getElementById("generate-btn");
-    const copyBtn = document.getElementById("copy-btn");
+    // ---------------- DOM ----------------
+    const toneEl = document.getElementById("tone");
+    const addressEl = document.getElementById("address");
+    const cityEl = document.getElementById("city");
+    const stateEl = document.getElementById("state");
+    const priceEl = document.getElementById("price");
+    const bedsEl = document.getElementById("beds");
+    const bathsEl = document.getElementById("baths");
+    const sqftEl = document.getElementById("sqft");
+    const yearBuiltEl = document.getElementById("yearBuilt");
+    const featuresEl = document.getElementById("features");
+    const descriptionInputEl = document.getElementById("descriptionInput");
 
-    // Always talk to your backend on port 3000
-    const API_BASE = "http://localhost:3000";
+    const agentNameEl = document.getElementById("agentName");
+    const brokerageEl = document.getElementById("brokerage");
+    const agentPhoneEl = document.getElementById("agentPhone");
+    const agentEmailEl = document.getElementById("agentEmail");
+    const agentLogoEl = document.getElementById("agentLogo");
+    const uploadLogoBtn = document.getElementById("uploadLogoBtn");
+    const logoStatus = document.getElementById("logoStatus");
+    const logoPreview = document.getElementById("logoPreview");
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    const saveAgentBtn = document.getElementById("saveAgentBtn");
+    const clearAgentBtn = document.getElementById("clearAgentBtn");
+    const agentProfileStatus = document.getElementById("agentProfileStatus");
 
-      const payload = {
-        address: document.getElementById("address").value,
-        city: document.getElementById("city").value,
-        state: document.getElementById("state").value,
-        zip: document.getElementById("zip").value,
-        price: document.getElementById("price").value,
-        beds: document.getElementById("beds").value,
-        baths: document.getElementById("baths").value,
-        sqft: document.getElementById("sqft").value,
-        extras: document.getElementById("extras").value,
-        tone: document.getElementById("tone").value,
+    const imageEl = document.getElementById("image");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const imagePreview = document.getElementById("imagePreview");
+
+    const generateBtn = document.getElementById("generateBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const copyShareBtn = document.getElementById("copyShareBtn");
+
+    const mainStatus = document.getElementById("mainStatus");
+
+    const outputEmpty = document.getElementById("outputEmpty");
+    const outputWrap = document.getElementById("outputWrap");
+    const outTone = document.getElementById("outTone");
+    const outMeta = document.getElementById("outMeta");
+    const outTitle = document.getElementById("outTitle");
+    const outAddress = document.getElementById("outAddress");
+    const outDesc = document.getElementById("outDesc");
+
+    const refreshSavedBtn = document.getElementById("refreshSavedBtn");
+    const savedStatus = document.getElementById("savedStatus");
+    const savedList = document.getElementById("savedList");
+
+    // ---------------- State ----------------
+    window.lastListing = null;
+    let currentImageUrl = "";
+    let agentLogoUrl = "";
+    const AGENT_PROFILE_KEY = "aiRealEstateAgentProfile_v1";
+
+    // ---------------- Helpers ----------------
+    function setStatus(el, msg, type="") {
+      if (!el) return;
+      el.textContent = msg || "";
+      el.classList.toggle("error", type === "error");
+      el.classList.toggle("ok", type === "ok");
+    }
+
+    function setBusy(b) {
+      generateBtn.disabled = b;
+      uploadBtn.disabled = b;
+      uploadLogoBtn.disabled = b;
+      refreshSavedBtn.disabled = b;
+      saveAgentBtn.disabled = b;
+      clearAgentBtn.disabled = b;
+      copyShareBtn.disabled = b || !window.lastListing?.id;
+      // save/pdf enable depends on listing
+      saveBtn.disabled = b || !window.lastListing;
+      downloadPdfBtn.disabled = b || !window.lastListing;
+    }
+
+    function getAgentFromForm() {
+      return {
+        name: agentNameEl.value.trim(),
+        brokerage: brokerageEl.value.trim(),
+        phone: agentPhoneEl.value.trim(),
+        email: agentEmailEl.value.trim(),
+        logoUrl: agentLogoUrl || ""
       };
+    }
 
-      statusEl.textContent = "⏳ Generating listing with AI...";
-      statusEl.style.color = "#38bdf8";
-      button.disabled = true;
-      button.textContent = "Generating...";
-      outputEl.style.display = "none";
+    function setAgentForm(agent) {
+      agentNameEl.value = agent?.name || "";
+      brokerageEl.value = agent?.brokerage || "";
+      agentPhoneEl.value = agent?.phone || "";
+      agentEmailEl.value = agent?.email || "";
 
-      console.log("Sending payload to backend:", payload);
+      agentLogoUrl = agent?.logoUrl || "";
 
-      try {
-        const res = await fetch(`${API_BASE}/api/listings/generate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        console.log("Response object:", res);
-
-        if (!res.ok) {
-          throw new Error("Server error: " + res.status);
-        }
-
-        const data = await res.json();
-        console.log("Response JSON:", data);
-
-        outputTextEl.textContent = data.listing || "No listing text returned.";
-        outputEl.style.display = "block";
-        statusEl.textContent = "✅ Listing generated successfully";
-        statusEl.style.color = "#22c55e";
-      } catch (err) {
-        console.error("Fetch failed:", err);
-        statusEl.textContent = "❌ Error: " + err.message;
-        statusEl.style.color = "#f97373";
-        outputEl.style.display = "none";
-      } finally {
-        button.disabled = false;
-        button.textContent = "Generate Listing";
+      if (agentLogoUrl) {
+        logoPreview.src = agentLogoUrl;
+        logoPreview.style.display = "block";
+        setStatus(logoStatus, `Using saved logo: ${agentLogoUrl}`, "ok");
+      } else {
+        logoPreview.src = "";
+        logoPreview.style.display = "none";
+        setStatus(logoStatus, "");
       }
-    });
+    }
 
-    copyBtn.addEventListener("click", async () => {
-      const text = outputTextEl.textContent || "";
-      if (!text.trim()) return;
+    function saveAgentProfile(showToast = true) {
+      const agent = getAgentFromForm();
+      localStorage.setItem(AGENT_PROFILE_KEY, JSON.stringify(agent));
+      if (showToast) setStatus(agentProfileStatus, "Agent profile saved ✅", "ok");
+    }
 
+    function loadAgentProfile() {
       try {
-        await navigator.clipboard.writeText(text);
-        const old = copyBtn.textContent;
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => (copyBtn.textContent = old), 1200);
+        const raw = localStorage.getItem(AGENT_PROFILE_KEY);
+        if (!raw) return;
+        const agent = JSON.parse(raw);
+        setAgentForm(agent);
+        setStatus(agentProfileStatus, "Agent profile loaded ✅", "ok");
       } catch (e) {
         console.error(e);
-        const old = copyBtn.textContent;
-        copyBtn.textContent = "Error";
-        setTimeout(() => (copyBtn.textContent = old), 1200);
+      }
+    }
+
+    function clearAgentProfile() {
+      localStorage.removeItem(AGENT_PROFILE_KEY);
+      agentNameEl.value = "";
+      brokerageEl.value = "";
+      agentPhoneEl.value = "";
+      agentEmailEl.value = "";
+      agentLogoUrl = "";
+      logoPreview.src = "";
+      logoPreview.style.display = "none";
+      setStatus(logoStatus, "");
+      setStatus(agentProfileStatus, "Agent profile cleared.", "");
+    }
+
+    async function uploadImage(fileInput, statusEl, previewEl, setUrl, onSuccess) {
+      const file = fileInput.files?.[0];
+      if (!file) return setStatus(statusEl, "Pick an image first.", "error");
+
+      setBusy(true);
+      setStatus(statusEl, "Uploading...");
+
+      try {
+        const form = new FormData();
+        form.append("image", file);
+
+        const res = await fetch("/api/upload", { method: "POST", body: form });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "Upload failed.");
+
+        setUrl(data.imageUrl);
+
+        previewEl.src = data.imageUrl;
+        previewEl.style.display = "block";
+        setStatus(statusEl, `Uploaded: ${data.imageUrl}`, "ok");
+
+        if (typeof onSuccess === "function") onSuccess();
+      } catch (e) {
+        console.error(e);
+        setStatus(statusEl, e.message || "Upload error.", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function buildPayload() {
+      return {
+        tone: toneEl.value,
+        address: addressEl.value.trim(),
+        city: cityEl.value.trim(),
+        state: stateEl.value.trim(),
+        price: priceEl.value.trim(),
+        beds: bedsEl.value.trim(),
+        baths: bathsEl.value.trim(),
+        sqft: sqftEl.value.trim(),
+        yearBuilt: yearBuiltEl.value.trim(),
+        features: featuresEl.value.trim(),
+        descriptionInput: descriptionInputEl.value.trim(),
+        imageUrl: currentImageUrl || "",
+        agent: getAgentFromForm()
+      };
+    }
+
+    function renderListing(listing) {
+      outputEmpty.style.display = "none";
+      outputWrap.style.display = "block";
+
+      outTone.textContent = listing.tone || "MLS";
+      const meta = [
+        listing.beds && `${listing.beds} bd`,
+        listing.baths && `${listing.baths} ba`,
+        listing.sqft && `${listing.sqft} sqft`
+      ].filter(Boolean).join(" • ");
+      outMeta.textContent = meta || "—";
+
+      outTitle.textContent = listing.title || "Property Listing";
+      outAddress.textContent = [listing.address, listing.city, listing.state].filter(Boolean).join(", ");
+      outDesc.textContent = listing.description || "";
+
+      window.lastListing = listing;
+
+      saveBtn.disabled = false;
+      downloadPdfBtn.disabled = false;
+      copyShareBtn.disabled = false;
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "0";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch { ok = false; }
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    // ---------------- Event listeners ----------------
+    uploadBtn.addEventListener("click", () =>
+      uploadImage(imageEl, uploadStatus, imagePreview, (u) => currentImageUrl = u)
+    );
+
+    uploadLogoBtn.addEventListener("click", () =>
+      uploadImage(
+        agentLogoEl,
+        logoStatus,
+        logoPreview,
+        (u) => agentLogoUrl = u,
+        () => saveAgentProfile(false)
+      )
+    );
+
+    saveAgentBtn.addEventListener("click", () => saveAgentProfile(true));
+    clearAgentBtn.addEventListener("click", clearAgentProfile);
+
+    [agentNameEl, brokerageEl, agentPhoneEl, agentEmailEl].forEach(el => {
+      el.addEventListener("input", () => saveAgentProfile(false));
+    });
+
+    generateBtn.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        setStatus(mainStatus, "Generating...");
+
+        const res = await fetch("/api/listings/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildPayload())
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "Generate failed.");
+
+        renderListing(data.listing);
+        setStatus(mainStatus, "Done ✅", "ok");
+      } catch (e) {
+        console.error(e);
+        setStatus(mainStatus, e.message || "Generate error.", "error");
+      } finally {
+        setBusy(false);
       }
     });
+
+    saveBtn.addEventListener("click", async () => {
+      try {
+        if (!window.lastListing) return;
+        setBusy(true);
+        setStatus(mainStatus, "Saving...");
+
+        const res = await fetch("/api/listings/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(window.lastListing)
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "Save failed.");
+
+        setStatus(mainStatus, "Saved ✅", "ok");
+        await loadSaved();
+      } catch (e) {
+        console.error(e);
+        setStatus(mainStatus, e.message || "Save error.", "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    downloadPdfBtn.addEventListener("click", async () => {
+      try {
+        if (!window.lastListing) return alert("Generate a listing first.");
+        setBusy(true);
+        setStatus(mainStatus, "Building PDF...");
+
+        const res = await fetch("/api/pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(window.lastListing)
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `PDF failed (${res.status})`);
+        }
+
+        const buf = await res.arrayBuffer();
+        const blob = new Blob([buf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "listing.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        setStatus(mainStatus, "PDF downloaded ✅", "ok");
+      } catch (e) {
+        console.error(e);
+        setStatus(mainStatus, e.message || "PDF error.", "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    // ✅ FIXED COPY: will ALWAYS show prompt if copy is blocked
+    copyShareBtn.addEventListener("click", async () => {
+      if (!window.lastListing?.id) {
+        setStatus(mainStatus, "Generate a listing first.", "error");
+        return;
+      }
+
+      const url = `${location.origin}/listing/${window.lastListing.id}`;
+
+      // Try modern clipboard first (works on localhost in many browsers)
+      try {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(url);
+          setStatus(mainStatus, `Copied ✅\n${url}`, "ok");
+          return;
+        }
+      } catch (e) {
+        // ignore and fallback
+      }
+
+      // Try execCommand fallback
+      const ok = fallbackCopy(url);
+      if (ok) {
+        setStatus(mainStatus, `Copied ✅\n${url}`, "ok");
+        return;
+      }
+
+      // Guaranteed fallback
+      prompt("Copy this share link:", url);
+      setStatus(mainStatus, `Copy manually:\n${url}`, "");
+    });
+
+    refreshSavedBtn.addEventListener("click", loadSaved);
+
+    async function loadSaved() {
+      try {
+        setStatus(savedStatus, "Loading...");
+        const res = await fetch("/api/listings");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "Load failed.");
+
+        renderSaved(data.listings || []);
+        setStatus(savedStatus, (data.listings || []).length ? `${data.listings.length} saved` : "No saved listings");
+      } catch (e) {
+        console.error(e);
+        setStatus(savedStatus, e.message || "Load error.", "error");
+      }
+    }
+
+    function renderSaved(listings) {
+      savedList.innerHTML = "";
+      if (!listings.length) return;
+
+      for (const l of listings) {
+        const wrap = document.createElement("div");
+        wrap.className = "saved-item";
+
+        const h = document.createElement("h3");
+        h.textContent = l.title || "Saved Listing";
+
+        const mini = document.createElement("div");
+        mini.className = "mini";
+        mini.textContent = `${l.tone || "MLS"} • ${[l.address, l.city, l.state].filter(Boolean).join(", ") || "—"}`;
+
+        const actions = document.createElement("div");
+        actions.className = "saved-actions";
+
+        const openBtn = document.createElement("button");
+        openBtn.className = "secondary";
+        openBtn.textContent = "Open";
+        openBtn.onclick = () => {
+          window.lastListing = l;
+
+          currentImageUrl = l.imageUrl || "";
+          agentLogoUrl = l?.agent?.logoUrl || "";
+
+          if (currentImageUrl) {
+            imagePreview.src = currentImageUrl;
+            imagePreview.style.display = "block";
+            setStatus(uploadStatus, `Using saved photo: ${currentImageUrl}`, "ok");
+          }
+
+          setAgentForm(l?.agent || {});
+          saveAgentProfile(false);
+
+          renderListing(l);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+
+        const pdfBtn = document.createElement("button");
+        pdfBtn.className = "secondary";
+        pdfBtn.textContent = "PDF";
+        pdfBtn.onclick = () => { window.lastListing = l; downloadPdfBtn.click(); };
+
+        const shareBtn = document.createElement("button");
+        shareBtn.className = "secondary";
+        shareBtn.textContent = "Copy Link";
+        shareBtn.onclick = async () => {
+          window.lastListing = l;
+          copyShareBtn.click();
+        };
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.onclick = async () => {
+          if (!confirm("Delete this saved listing?")) return;
+          try {
+            setStatus(savedStatus, "Deleting...");
+            const res = await fetch(`/api/listings/${encodeURIComponent(l.id)}`, { method: "DELETE" });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.ok) throw new Error(data?.error || "Delete failed.");
+            await loadSaved();
+          } catch (e) {
+            console.error(e);
+            setStatus(savedStatus, e.message || "Delete error.", "error");
+          }
+        };
+
+        actions.appendChild(openBtn);
+        actions.appendChild(pdfBtn);
+        actions.appendChild(shareBtn);
+        actions.appendChild(delBtn);
+
+        wrap.appendChild(h);
+        wrap.appendChild(mini);
+        wrap.appendChild(actions);
+
+        savedList.appendChild(wrap);
+      }
+    }
+
+    // ---------------- Startup ----------------
+    loadAgentProfile();
+    loadSaved();
   </script>
 </body>
 </html>
