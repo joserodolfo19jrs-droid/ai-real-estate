@@ -1,3 +1,4 @@
+console.log("OPENAI KEY EXISTS:", !!process.env.OPENAI_API_KEY);
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -8,6 +9,27 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const rateLimit = require("express-rate-limit");
+
+// Limit AI calls per IP
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // 30 requests per 15 min per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+});
+
+const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+
+if (!hasOpenAIKey) {
+  console.warn("⚠️ OPENAI_API_KEY missing — AI generation disabled.");
+if (!hasOpenAIKey) {
+  return res.status(503).json({
+    error: "AI generation is disabled (missing OPENAI_API_KEY).",
+  });
+}
+
 
 // ---------------- Middleware ----------------
 app.use(express.json({ limit: "10mb" }));
@@ -306,7 +328,10 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
   return res.json({ ok: true, imageUrl: `/uploads/${req.file.filename}` });
 });
 
-app.post("/api/listings/generate", async (req, res) => {
+app.post("/api/listings/generate", aiLimiter, async (req, res) => {
+  // existing code...
+});
+
   try {
     const input = req.body || {};
     const prompt = buildPrompt(input);
