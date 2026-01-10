@@ -1,4 +1,3 @@
-console.log("OPENAI KEY EXISTS:", !!process.env.OPENAI_API_KEY);
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -7,9 +6,13 @@ const crypto = require("crypto");
 const puppeteer = require("puppeteer");
 require("dotenv").config();
 
+const rateLimit = require("express-rate-limit");
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const rateLimit = require("express-rate-limit");
+
+// Debug (optional)
+console.log("OPENAI KEY EXISTS:", !!process.env.OPENAI_API_KEY);
 
 // Limit AI calls per IP
 const aiLimiter = rateLimit({
@@ -20,15 +23,9 @@ const aiLimiter = rateLimit({
   message: { error: "Too many requests. Please try again later." },
 });
 
+// Used inside the AI route
 const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
-
-if (!hasOpenAIKey) {
-  console.warn("⚠️ OPENAI_API_KEY missing — AI generation disabled.");
-if (!hasOpenAIKey) {
-  return res.status(503).json({
-    error: "AI generation is disabled (missing OPENAI_API_KEY).",
-  });
-}
+if (!hasOpenAIKey) console.warn("⚠️ OPENAI_API_KEY missing — AI generation disabled.");
 
 
 // ---------------- Middleware ----------------
@@ -329,8 +326,9 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
 });
 
 app.post("/api/listings/generate", aiLimiter, async (req, res) => {
-  // existing code...
-});
+  if (!hasOpenAIKey) {
+    return res.status(503).json({ error: "AI generation is disabled (missing OPENAI_API_KEY)." });
+  }
 
   try {
     const input = req.body || {};
@@ -369,6 +367,7 @@ app.post("/api/listings/generate", aiLimiter, async (req, res) => {
     return res.status(500).json({ ok: false, error: "Failed to generate listing." });
   }
 });
+
 
 app.get("/api/listings", (req, res) => {
   const listings = readListings();
