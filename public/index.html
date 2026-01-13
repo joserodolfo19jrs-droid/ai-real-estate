@@ -37,6 +37,7 @@
     .small { font-size:12px; color:var(--m); margin-top:8px; }
     a.link { color:#111; text-decoration:none; border-bottom: 1px dashed #bbb; }
     .hr { height:1px; background:var(--b); margin:12px 0; }
+    .previewBar { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -113,10 +114,16 @@
       <div class="hr"></div>
 
       <h2>House Photos</h2>
-      <label for="images">Select multiple photos (up to 12 each time)</label>
+      <label for="images">Select multiple photos (uploads to /api/uploads)</label>
       <input id="images" type="file" accept="image/*" multiple />
+
+      <div class="previewBar">
+        <button id="btnPreviewPhotos" type="button" class="secondary">Preview Photos</button>
+        <span id="previewHint" class="small">Preview is hidden</span>
+      </div>
+
       <div id="uploadStatus" class="status">No photos uploaded yet.</div>
-      <div id="gallery" class="thumbs"></div>
+      <div id="gallery" class="thumbs" style="display:none;"></div>
 
       <div class="hr"></div>
 
@@ -148,9 +155,9 @@
       <div id="logoStatus" class="status"></div>
 
       <div class="btns">
-        <button id="btnGenerate">Generate</button>
-        <button id="btnSave" class="secondary" disabled>Save</button>
-        <button id="btnPdf" class="secondary" disabled>Download PDF</button>
+        <button id="btnGenerate" type="button">Generate</button>
+        <button id="btnSave" type="button" class="secondary" disabled>Save</button>
+        <button id="btnPdf" type="button" class="secondary" disabled>Download PDF</button>
       </div>
 
       <div id="mainStatus" class="status"></div>
@@ -167,12 +174,13 @@
   </main>
 
   <script>
-    // App state
+    // ---------------- App state ----------------
+  console.log("✅ NEW INDEX LOADED v1");
     let uploadedImageUrls = [];
     let uploadedLogoUrl = "";
     let currentListing = null;
+    let previewOn = false;
 
-    // Helpers
     const $ = (id) => document.getElementById(id);
 
     function setStatus(el, msg, cls) {
@@ -187,9 +195,10 @@
         .replaceAll(">","&gt;");
     }
 
+    // ---------------- Gallery UI ----------------
     function renderGallery() {
-      const gallery = $("gallery");
-      gallery.innerHTML = "";
+      const g = $("gallery");
+      g.innerHTML = "";
 
       if (!uploadedImageUrls.length) {
         setStatus($("uploadStatus"), "No photos uploaded yet.", "");
@@ -197,6 +206,9 @@
       }
 
       setStatus($("uploadStatus"), `Photos: ${uploadedImageUrls.length}`, "ok");
+
+      // If preview is hidden, don't render thumbs (optional)
+      if (!previewOn) return;
 
       uploadedImageUrls.forEach((url, idx) => {
         const wrap = document.createElement("div");
@@ -208,6 +220,7 @@
 
         const btn = document.createElement("button");
         btn.className = "secondary";
+        btn.type = "button";
         btn.textContent = "Remove";
         btn.addEventListener("click", () => {
           uploadedImageUrls.splice(idx, 1);
@@ -216,30 +229,45 @@
 
         wrap.appendChild(img);
         wrap.appendChild(btn);
-        gallery.appendChild(wrap);
+        g.appendChild(wrap);
       });
     }
 
-    // MULTI UPLOAD (house photos)
+    function syncPreviewUI() {
+      $("gallery").style.display = previewOn ? "flex" : "none";
+      $("btnPreviewPhotos").textContent = previewOn ? "Hide Preview" : "Preview Photos";
+      $("previewHint").textContent = previewOn ? "Preview is visible" : "Preview is hidden";
+    }
+
+    // ---------------- Uploads ----------------
     async function uploadHousePhotos(fileList) {
-  const files = Array.from(fileList || []);
-  if (!files.length) return;
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
 
-  const fd = new FormData();
-  // IMPORTANT: field name must be "images"
-  files.forEach((f) => fd.append("images", f));
+      // allow re-selecting same files later
+      $("images").value = "";
 
-  const r = await fetch("/api/uploads", { method: "POST", body: fd });
-  const data = await r.json();
+      setStatus($("uploadStatus"), `Uploading ${files.length} photo(s)...`, "");
 
-  if (!r.ok || !data.ok) throw new Error(data.error || "Upload failed");
+      try {
+        const fd = new FormData();
 
-  uploadedImageUrls = uploadedImageUrls.concat(data.imageUrls || []);
-  renderGallery();
-}
-   }
+        // MUST match server: upload.array("images", 12)
+        for (const f of files) fd.append("images", f);
 
-    // SINGLE UPLOAD (agent logo)
+        const r = await fetch("/api/uploads", { method: "POST", body: fd });
+        const data = await r.json().catch(() => ({}));
+
+        if (!r.ok || !data.ok) throw new Error(data.error || "Upload failed.");
+
+        uploadedImageUrls = uploadedImageUrls.concat(data.imageUrls || []);
+        setStatus($("uploadStatus"), `Uploaded ${data.imageUrls?.length || 0}. Total: ${uploadedImageUrls.length}`, "ok");
+        renderGallery();
+      } catch (e) {
+        setStatus($("uploadStatus"), String(e?.message || e), "error");
+      }
+    }
+
     async function uploadAgentLogo(file) {
       if (!file) return;
 
@@ -247,7 +275,8 @@
 
       try {
         const fd = new FormData();
-        // IMPORTANT: field name MUST be "image"
+
+        // MUST match server: upload.single("image")
         fd.append("image", file);
 
         const r = await fetch("/api/upload", { method: "POST", body: fd });
@@ -262,6 +291,7 @@
       }
     }
 
+    // ---------------- Listing generate/save/pdf ----------------
     function collectInput() {
       return {
         tone: $("tone").value,
@@ -276,9 +306,9 @@
         features: $("features").value.trim(),
         descriptionInput: $("descriptionInput").value.trim(),
 
-        // Multi images
+        // multi images
         imageUrls: uploadedImageUrls,
-        // Back-compat main image
+        // back-compat main image
         imageUrl: uploadedImageUrls[0] || "",
 
         agent: {
@@ -400,19 +430,49 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      renderGallery();
+    // ---------------- Wire up DOM ----------------
+   document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ DOM loaded");
 
-$("images").addEventListener("change", (e) => {
-  alert("Files selected: " + e.target.files.length);
-  uploadHousePhotos(e.target.files);
+  const btnGen = document.getElementById("btnGenerate");
+  const btnSave = document.getElementById("btnSave");
+  const btnPdf = document.getElementById("btnPdf");
+
+  if (!btnGen) {
+    alert("❌ btnGenerate not found. Wrong HTML loaded or id mismatch.");
+    return;
+  }
+
+  btnGen.onclick = async () => {
+    console.log("✅ Generate clicked (handler running)");
+    await generateListing();
+  };
+
+  btnSave.onclick = async () => {
+    console.log("✅ Save clicked");
+    await saveListing();
+  };
+
+  btnPdf.onclick = async () => {
+    console.log("✅ PDF clicked");
+    await downloadPdf();
+  };
 });
 
-    
-      $("agentLogo").addEventListener("change", (e) => {
-        uploadAgentLogo(e.target.files?.[0]);
+      // toggle preview
+      $("btnPreviewPhotos").addEventListener("click", () => {
+        previewOn = !previewOn;
+        syncPreviewUI();
+        renderGallery();
       });
 
+      // multi photos
+      $("images").addEventListener("change", (e) => uploadHousePhotos(e.target.files));
+
+      // logo
+      $("agentLogo").addEventListener("change", (e) => uploadAgentLogo(e.target.files?.[0]));
+
+      // actions
       $("btnGenerate").addEventListener("click", generateListing);
       $("btnSave").addEventListener("click", saveListing);
       $("btnPdf").addEventListener("click", downloadPdf);
